@@ -1,4 +1,4 @@
-const { UnauthorizedError } = require("../utils/errors");
+const { BadRequestError, UnauthorizedError } = require("../utils/errors");
 const db = require("../db");
 
 class User {
@@ -18,14 +18,55 @@ class User {
   static async register(credentials) {
     // user should submit their email and password
     // if any of those are missing, throw error
-    //
+    const requiredFields = ["email", "password", "firstName", "lastName", "location", "date"];
+    requiredFields.forEach((field) => {
+      if (!credentials.hasOwnProperty(field)) {
+        throw new BadRequestError(`Missing ${field} in request body`);
+      }
+    });
+
+    if (credentials.email.indexOf("@") <= 0) {
+      throw new BadRequestError("Invalid email");
+    }
     // make sure no user already exists in system
     // with that same email. If so, throw error
-    //
+    const existingUser = await User.fetchUserByEmail(credentials.email);
+    if (existingUser) {
+      throw new BadRequestError(`Duplicate email: ${email}`);
+    }
     // take the users password and hash it
+
     // take the users email and lowercase it
-    //
+    const lowercasedEmail = credentials.email.toLowerCase();
     // create a new user in the db with all their info
+    const result = await db.query(`
+    INSERT INTO users (
+      email,
+      password,
+      first_name,
+      last_name,
+      location,
+      date
+    )
+    VALUES ($1, $2, $3, $4)
+    RETURNING id, email, first_name, last_name, location, date;
+    `);
     // return the user
+    const user = result.rows[0];
+    return user;
+  }
+
+  static async fetchUserByEmail(email) {
+    if (!email) {
+      throw new BadRequestError("No email provided.");
+    }
+
+    const query = "SELECT * FROM users WHERE email = $1";
+
+    const result = await db.query(query, [email.toLowerCase()]);
+
+    const user = result.rows[0];
+
+    return user;
   }
 }
