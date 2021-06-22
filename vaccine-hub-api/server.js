@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const { PORT } = require("./config");
+const authRoutes = require("./routes/auth");
 
 const { NotFoundError } = require("./utils/errors");
 
@@ -13,6 +14,9 @@ app.use(cors());
 app.use(express.json());
 // log request info
 app.use(morgan("tiny"));
+
+// use our auth route
+app.use("/auth", authRoutes);
 
 // handle not found error if the endpoint doesn't match any of the endpoints in our app.
 app.use((req, res, next) => {
