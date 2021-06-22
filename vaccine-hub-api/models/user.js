@@ -104,5 +104,4 @@ class User {
     return user;
   }
 }
-
 module.exports = User;
