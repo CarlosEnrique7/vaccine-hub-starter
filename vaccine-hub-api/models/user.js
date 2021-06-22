@@ -1,5 +1,7 @@
 const { BadRequestError, UnauthorizedError } = require("../utils/errors");
 const db = require("../db");
+const bcrypt = require("bcrypt");
+const { BCRYPT_WORK_FACTOR } = require("../config");
 
 class User {
   static async login(credentials) {
@@ -35,11 +37,12 @@ class User {
       throw new BadRequestError(`Duplicate email: ${email}`);
     }
     // take the users password and hash it
-
+    const hashedPassword = await bcrypt.hash(credentials.password, BCRYPT_WORK_FACTOR);
     // take the users email and lowercase it
     const lowercasedEmail = credentials.email.toLowerCase();
     // create a new user in the db with all their info
-    const result = await db.query(`
+    const result = await db.query(
+      `
     INSERT INTO users (
       email,
       password,
@@ -48,9 +51,18 @@ class User {
       location,
       date
     )
-    VALUES ($1, $2, $3, $4)
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id, email, first_name, last_name, location, date;
-    `);
+    `,
+      [
+        lowercasedEmail,
+        hashedPassword,
+        credentials.firstName,
+        credentials.lastName,
+        credentials.location,
+        credentials.date,
+      ]
+    );
     // return the user
     const user = result.rows[0];
     return user;
@@ -70,3 +82,5 @@ class User {
     return user;
   }
 }
+
+module.exports = User;
